@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>員工開門排班行事曆</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>員工開門排班行事曆</h1>
+        </header>
+        
+        <div class="controls">
+            <button id="prevMonth">&lt;</button>
+            <h2 id="monthYear"></h2>
+            <button id="nextMonth">&gt;</button>
+            <button id="downloadExcel">下載Excel</button>
+        </div>
+
+        <div class="calendar-wrapper">
+            <table class="calendar">
+                <thead>
+                    <tr>
+                        <th>日</th>
+                        <th>一</th>
+                        <th>二</th>
+                        <th>三</th>
+                        <th>四</th>
+                        <th>五</th>
+                        <th>六</th>
+                    </tr>
+                </thead>
+                <tbody id="calendarBody">
+                    <!-- 日曆內容將由 JavaScript 生成 -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="sidebar">
+            <div class="add-schedule">
+                <h3>新增開門名單</h3>
+                <div class="input-group">
+                    <textarea id="openEmployeeName" placeholder="員工姓名 (一行一個，可同時輸入多人)"></textarea>
+                    <button id="addOpenEmployee">新增</button>
+                </div>
+            </div>
+
+            <div class="add-close-schedule">
+                <h3>新增關門名單</h3>
+                <div class="input-group">
+                    <textarea id="closeEmployeeName" placeholder="員工姓名 (一行一個，可同時輸入多人)"></textarea>
+                    <button id="addCloseEmployee">新增</button>
+                </div>
+            </div>
+
+            <div class="add-holiday">
+                <h3>自訂假日</h3>
+                <div class="input-group">
+                    <input type="date" id="holidayDate" placeholder="選擇日期">
+                    <button id="addHoliday">新增假日</button>
+                </div>
+            </div>
+
+            <div class="employee-list">
+                <h3>開門名單管理</h3>
+                <div id="openEmployeeListContainer">
+                    <!-- 開門員工名單將顯示在這裡 -->
+                </div>
+            </div>
+
+            <div class="close-employee-list">
+                <h3>關門名單管理</h3>
+                <div id="closeEmployeeListContainer">
+                    <!-- 關門員工名單將顯示在這裡 -->
+                </div>
+            </div>
+
+            <div class="holiday-list">
+                <h3>自訂假日列表</h3>
+                <div id="holidayListContainer">
+                    <!-- 自訂假日將顯示在這裡 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

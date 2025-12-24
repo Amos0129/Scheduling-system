@@ -1,0 +1,530 @@
+// 全域變數
+let currentDate = new Date();
+let openEmployees = [];
+let closeEmployees = [];
+let customHolidays = [];
+
+// 假日設定 (可根據需要調整)
+const holidays = [
+    '2024-01-01', // 元旦
+    '2024-02-10', '2024-02-11', '2024-02-12', // 春節
+    '2024-04-04', '2024-04-05', // 清明節
+    '2024-05-01', // 勞動節
+    '2024-06-10', // 端午節
+    '2024-09-17', // 中秋節
+    '2024-10-10', // 國慶日
+    '2025-01-01', // 元旦
+    '2025-01-29', '2025-01-30', '2025-01-31', // 春節
+    '2025-04-04', '2025-04-05', // 清明節
+    '2025-05-01', // 勞動節
+    '2025-05-31', // 端午節
+    '2025-10-06', // 中秋節
+    '2025-10-10'  // 國慶日
+];
+
+// DOM 元素
+const monthYearElement = document.getElementById('monthYear');
+const calendarBody = document.getElementById('calendarBody');
+const prevMonthBtn = document.getElementById('prevMonth');
+const nextMonthBtn = document.getElementById('nextMonth');
+const openEmployeeNameInput = document.getElementById('openEmployeeName');
+const addOpenEmployeeBtn = document.getElementById('addOpenEmployee');
+const openEmployeeListContainer = document.getElementById('openEmployeeListContainer');
+const closeEmployeeNameInput = document.getElementById('closeEmployeeName');
+const addCloseEmployeeBtn = document.getElementById('addCloseEmployee');
+const closeEmployeeListContainer = document.getElementById('closeEmployeeListContainer');
+const holidayDateInput = document.getElementById('holidayDate');
+const addHolidayBtn = document.getElementById('addHoliday');
+const holidayListContainer = document.getElementById('holidayListContainer');
+const downloadExcelBtn = document.getElementById('downloadExcel');
+
+// 初始化
+document.addEventListener('DOMContentLoaded', function() {
+    loadEmployees();
+    loadCustomHolidays();
+    displayCalendar();
+    updateEmployeeList();
+    updateHolidayList();
+    
+    // 事件監聽器
+    prevMonthBtn.addEventListener('click', previousMonth);
+    nextMonthBtn.addEventListener('click', nextMonth);
+    addOpenEmployeeBtn.addEventListener('click', addOpenEmployee);
+    addCloseEmployeeBtn.addEventListener('click', addCloseEmployee);
+    addHolidayBtn.addEventListener('click', addCustomHoliday);
+    downloadExcelBtn.addEventListener('click', downloadExcel);
+});
+
+// 顯示行事曆
+function displayCalendar() {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    
+    // 更新月份年份顯示
+    monthYearElement.textContent = `${year}年 ${month + 1}月`;
+    
+    // 清空行事曆
+    calendarBody.innerHTML = '';
+    
+    // 獲得本月第一天和最後一天
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    
+    // 生成6週的日曆
+    for (let week = 0; week < 6; week++) {
+        const row = document.createElement('tr');
+        
+        for (let day = 0; day < 7; day++) {
+            const cell = document.createElement('td');
+            const cellDate = new Date(startDate);
+            cellDate.setDate(startDate.getDate() + (week * 7) + day);
+            
+            // 日期數字
+            const dateNumber = document.createElement('div');
+            dateNumber.className = 'date-number';
+            dateNumber.textContent = cellDate.getDate();
+            
+            // 檢查是否為假日
+            const dateString = formatDate(cellDate);
+            const isNationalHoliday = holidays.includes(dateString);
+            const isCustomHoliday = customHolidays.includes(dateString);
+            const isWeekend = cellDate.getDay() === 0 || cellDate.getDay() === 6;
+            
+            // 設定樣式
+            if (cellDate.getMonth() !== month) {
+                cell.className = 'other-month';
+            } else if (isNationalHoliday || isCustomHoliday) {
+                cell.className = 'holiday';
+            } else if (isWeekend) {
+                cell.className = 'weekend';
+            }
+            
+            cell.appendChild(dateNumber);
+            
+            // 顯示該日期的開門員工名單
+            const dayOpenEmployees = getOpenEmployeesForDate(cellDate);
+            dayOpenEmployees.forEach(emp => {
+                const empElement = document.createElement('div');
+                empElement.className = 'employee-name';
+                empElement.textContent = `開:${emp}`;
+                cell.appendChild(empElement);
+            });
+            
+            // 顯示該日期的關門員工名單
+            const dayCloseEmployees = getCloseEmployeesForDate(cellDate);
+            dayCloseEmployees.forEach(emp => {
+                const empElement = document.createElement('div');
+                empElement.className = 'close-employee-name';
+                empElement.textContent = `關:${emp}`;
+                cell.appendChild(empElement);
+            });
+            
+            row.appendChild(cell);
+        }
+        
+        calendarBody.appendChild(row);
+    }
+}
+
+// 上個月
+function previousMonth() {
+    currentDate.setMonth(currentDate.getMonth() - 1);
+    displayCalendar();
+}
+
+// 下個月
+function nextMonth() {
+    currentDate.setMonth(currentDate.getMonth() + 1);
+    displayCalendar();
+}
+
+// 新增開門員工
+function addOpenEmployee() {
+    const employeeNames = openEmployeeNameInput.value.trim();
+    
+    if (!employeeNames) {
+        alert('請填入員工姓名');
+        return;
+    }
+    
+    // 按行分割，過濾空行
+    const names = employeeNames.split('\n').map(name => name.trim()).filter(name => name.length > 0);
+    
+    if (names.length === 0) {
+        alert('請填入員工姓名');
+        return;
+    }
+    
+    // 批次新增員工
+    names.forEach(name => {
+        const employee = {
+            id: Date.now() + Math.random(), // 避免ID重複
+            name: name,
+            order: openEmployees.length
+        };
+        openEmployees.push(employee);
+    });
+    
+    saveEmployees();
+    updateEmployeeList();
+    displayCalendar();
+    
+    // 清空輸入欄位
+    openEmployeeNameInput.value = '';
+}
+
+// 新增關門員工
+function addCloseEmployee() {
+    const employeeNames = closeEmployeeNameInput.value.trim();
+    
+    if (!employeeNames) {
+        alert('請填入員工姓名');
+        return;
+    }
+    
+    // 按行分割，過濾空行
+    const names = employeeNames.split('\n').map(name => name.trim()).filter(name => name.length > 0);
+    
+    if (names.length === 0) {
+        alert('請填入員工姓名');
+        return;
+    }
+    
+    // 批次新增員工
+    names.forEach(name => {
+        const employee = {
+            id: Date.now() + Math.random(), // 避免ID重複
+            name: name,
+            order: closeEmployees.length
+        };
+        closeEmployees.push(employee);
+    });
+    
+    saveEmployees();
+    updateEmployeeList();
+    displayCalendar();
+    
+    // 清空輸入欄位
+    closeEmployeeNameInput.value = '';
+}
+
+// 刪除開門員工
+function deleteOpenEmployee(id) {
+    openEmployees = openEmployees.filter(emp => emp.id !== id);
+    saveEmployees();
+    updateEmployeeList();
+    displayCalendar();
+}
+
+// 刪除關門員工
+function deleteCloseEmployee(id) {
+    closeEmployees = closeEmployees.filter(emp => emp.id !== id);
+    saveEmployees();
+    updateEmployeeList();
+    displayCalendar();
+}
+
+// 更新員工名單顯示
+function updateEmployeeList() {
+    // 更新開門員工名單
+    openEmployeeListContainer.innerHTML = '';
+    openEmployees.forEach((emp, index) => {
+        const empItem = document.createElement('div');
+        empItem.className = 'employee-item';
+        
+        empItem.innerHTML = `
+            <span>${index + 1}. ${emp.name}</span>
+            <button class="delete-btn" onclick="deleteOpenEmployee(${emp.id})">刪除</button>
+        `;
+        
+        openEmployeeListContainer.appendChild(empItem);
+    });
+    
+    // 更新關門員工名單
+    closeEmployeeListContainer.innerHTML = '';
+    closeEmployees.forEach((emp, index) => {
+        const empItem = document.createElement('div');
+        empItem.className = 'employee-item';
+        
+        empItem.innerHTML = `
+            <span>${index + 1}. ${emp.name}</span>
+            <button class="delete-btn" onclick="deleteCloseEmployee(${emp.id})">刪除</button>
+        `;
+        
+        closeEmployeeListContainer.appendChild(empItem);
+    });
+}
+
+// 獲得指定日期的開門員工名單
+function getOpenEmployeesForDate(date) {
+    if (openEmployees.length === 0) return [];
+    
+    // 檢查當天是否為假日或週末，如果是則不排班
+    if (isHolidayOrWeekend(date)) {
+        return [];
+    }
+    
+    // 計算從每月1號開始到今天的工作日數量
+    const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+    const workDaysCount = getWorkDaysBetween(monthStart, date);
+    
+    // 用工作日數量除以員工數量取餘數，得到當天值班的員工索引
+    const employeeIndex = workDaysCount % openEmployees.length;
+    
+    return [openEmployees[employeeIndex].name];
+}
+
+// 獲得指定日期的關門員工名單
+function getCloseEmployeesForDate(date) {
+    if (closeEmployees.length === 0) return [];
+    
+    // 檢查當天是否為假日或週末，如果是則不排班
+    if (isHolidayOrWeekend(date)) {
+        return [];
+    }
+    
+    // 計算從每月1號開始到今天的工作日數量
+    const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+    const workDaysCount = getWorkDaysBetween(monthStart, date);
+    
+    // 用工作日數量除以員工數量取餘數，得到當天值班的員工索引
+    const employeeIndex = workDaysCount % closeEmployees.length;
+    
+    return [closeEmployees[employeeIndex].name];
+}
+
+// 計算兩個日期之間的工作日數量
+function getWorkDaysBetween(startDate, endDate) {
+    let count = 0;
+    let current = new Date(startDate);
+    
+    while (current <= endDate) {
+        if (!isHolidayOrWeekend(current)) {
+            count++;
+        }
+        current.setDate(current.getDate() + 1);
+    }
+    
+    return count - 1; // 減1因為不包含當前日期
+}
+
+// 新增自訂假日
+function addCustomHoliday() {
+    const holidayDate = holidayDateInput.value;
+    
+    if (!holidayDate) {
+        alert('請選擇假日日期');
+        return;
+    }
+    
+    if (customHolidays.includes(holidayDate)) {
+        alert('此日期已經是假日了');
+        return;
+    }
+    
+    customHolidays.push(holidayDate);
+    saveCustomHolidays();
+    updateHolidayList();
+    displayCalendar();
+    
+    // 清空輸入欄位
+    holidayDateInput.value = '';
+}
+
+// 刪除自訂假日
+function deleteCustomHoliday(holidayDate) {
+    customHolidays = customHolidays.filter(date => date !== holidayDate);
+    saveCustomHolidays();
+    updateHolidayList();
+    displayCalendar();
+}
+
+// 更新自訂假日列表
+function updateHolidayList() {
+    holidayListContainer.innerHTML = '';
+    
+    customHolidays.forEach(holidayDate => {
+        const holidayItem = document.createElement('div');
+        holidayItem.className = 'holiday-item';
+        
+        const date = new Date(holidayDate);
+        const formattedDate = `${date.getFullYear()}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
+        
+        holidayItem.innerHTML = `
+            <span>${formattedDate}</span>
+            <button class="delete-btn" onclick="deleteCustomHoliday('${holidayDate}')">刪除</button>
+        `;
+        
+        holidayListContainer.appendChild(holidayItem);
+    });
+}
+
+// 檢查是否為假日或週末
+function isHolidayOrWeekend(date) {
+    const dateString = formatDate(date);
+    const dayOfWeek = date.getDay();
+    
+    // 檢查是否為週末 (週六=6, 週日=0)
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+        return true;
+    }
+    
+    // 檢查是否為國定假日
+    if (holidays.includes(dateString)) {
+        return true;
+    }
+    
+    // 檢查是否為自訂假日
+    return customHolidays.includes(dateString);
+}
+
+// 格式化日期為 YYYY-MM-DD
+function formatDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// 儲存員工資料到 localStorage
+function saveEmployees() {
+    localStorage.setItem('openEmployees', JSON.stringify(openEmployees));
+    localStorage.setItem('closeEmployees', JSON.stringify(closeEmployees));
+}
+
+// 儲存自訂假日到 localStorage
+function saveCustomHolidays() {
+    localStorage.setItem('customHolidays', JSON.stringify(customHolidays));
+}
+
+// 從 localStorage 載入員工資料
+function loadEmployees() {
+    const savedOpen = localStorage.getItem('openEmployees');
+    const savedClose = localStorage.getItem('closeEmployees');
+    
+    if (savedOpen) {
+        openEmployees = JSON.parse(savedOpen);
+    }
+    
+    if (savedClose) {
+        closeEmployees = JSON.parse(savedClose);
+    }
+}
+
+// 從 localStorage 載入自訂假日資料
+function loadCustomHolidays() {
+    const saved = localStorage.getItem('customHolidays');
+    if (saved) {
+        customHolidays = JSON.parse(saved);
+    }
+}
+
+// 下載Excel檔案
+function downloadExcel() {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth() + 1;
+    const monthName = `${year}年${month}月`;
+    
+    // 獲取該月的天數
+    const daysInMonth = new Date(year, month, 0).getDate();
+    
+    // 建立Excel表格，保持紅色格式
+    let xmlContent = `<?xml version="1.0"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">
+<Styles>
+<Style ss:ID="Default" ss:Name="Normal">
+<Alignment ss:Horizontal="Center"/>
+<Font ss:FontName="新細明體" ss:Size="11"/>
+<Borders>
+<Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+<Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+<Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+<Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+</Borders>
+</Style>
+<Style ss:ID="Header">
+<Alignment ss:Horizontal="Center"/>
+<Font ss:FontName="新細明體" ss:Size="11" ss:Bold="1"/>
+<Interior ss:Color="#F0F0F0" ss:Pattern="Solid"/>
+<Borders>
+<Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="2"/>
+<Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="2"/>
+<Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="2"/>
+<Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="2"/>
+</Borders>
+</Style>
+<Style ss:ID="Holiday">
+<Alignment ss:Horizontal="Center"/>
+<Font ss:FontName="新細明體" ss:Size="11" ss:Color="#FF0000" ss:Bold="1"/>
+<Borders>
+<Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+<Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+<Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+<Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+</Borders>
+</Style>
+</Styles>
+<Worksheet ss:Name="${monthName}排班表">
+<Table>
+<Column ss:Width="50"/>
+<Column ss:Width="80"/>
+<Column ss:Width="80"/>
+<Row>
+<Cell ss:StyleID="Header"><Data ss:Type="String">日期</Data></Cell>
+<Cell ss:StyleID="Header"><Data ss:Type="String">開門</Data></Cell>
+<Cell ss:StyleID="Header"><Data ss:Type="String">關門</Data></Cell>
+</Row>`;
+
+    // 每一行代表一天
+    for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month - 1, day);
+        const dateString = formatDate(date);
+        
+        let openValue = '';
+        let closeValue = '';
+        let isHoliday = false;
+        
+        // 檢查是否為假日
+        if (customHolidays.includes(dateString) || holidays.includes(dateString)) {
+            openValue = '休假';
+            closeValue = '休假';
+            isHoliday = true;
+        } else if (date.getDay() === 0) {
+            openValue = '日';
+            closeValue = '日';
+            isHoliday = true;
+        } else if (date.getDay() === 6) {
+            openValue = '六';
+            closeValue = '六';
+            isHoliday = true;
+        } else {
+            // 取得開門和關門員工
+            const openEmployees = getOpenEmployeesForDate(date);
+            const closeEmployees = getCloseEmployeesForDate(date);
+            openValue = openEmployees.length > 0 ? openEmployees[0] : '';
+            closeValue = closeEmployees.length > 0 ? closeEmployees[0] : '';
+        }
+        
+        const styleID = isHoliday ? 'Holiday' : 'Default';
+        xmlContent += `
+<Row>
+<Cell ss:StyleID="Default"><Data ss:Type="Number">${day}</Data></Cell>
+<Cell ss:StyleID="${styleID}"><Data ss:Type="String">${openValue}</Data></Cell>
+<Cell ss:StyleID="${styleID}"><Data ss:Type="String">${closeValue}</Data></Cell>
+</Row>`;
+    }
+    
+    xmlContent += `
+</Table>
+</Worksheet>
+</Workbook>`;
+    
+    // 下載檔案
+    const blob = new Blob([xmlContent], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${monthName}排班表.xls`;
+    link.click();
+}
