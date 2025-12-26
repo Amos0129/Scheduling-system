@@ -108,6 +108,10 @@ function displayCalendar() {
             
             // 只在當前月份顯示員工排班
             if (cellDate.getMonth() === month) {
+                // 添加點擊編輯功能
+                cell.style.cursor = 'pointer';
+                cell.onclick = () => showDayEditModal(cellDate);
+                
                 // 顯示該日期的開門員工名單
                 const dayOpenEmployees = getOpenEmployeesForDate(cellDate);
                 dayOpenEmployees.forEach(emp => {
@@ -272,6 +276,13 @@ function getOpenEmployeesForDate(date) {
         return [];
     }
     
+    // 檢查是否有自訂排班
+    const dateString = formatDate(date);
+    const customSchedules = JSON.parse(localStorage.getItem('customSchedules') || '{}');
+    if (customSchedules[dateString] && customSchedules[dateString].openEmployee) {
+        return [customSchedules[dateString].openEmployee];
+    }
+    
     // 計算從每月1號開始到今天的工作日數量
     const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
     const workDaysCount = getWorkDaysBetween(monthStart, date);
@@ -289,6 +300,13 @@ function getCloseEmployeesForDate(date) {
     // 檢查當天是否為假日或週末，如果是則不排班
     if (isHolidayOrWeekend(date)) {
         return [];
+    }
+    
+    // 檢查是否有自訂排班
+    const dateString = formatDate(date);
+    const customSchedules = JSON.parse(localStorage.getItem('customSchedules') || '{}');
+    if (customSchedules[dateString] && customSchedules[dateString].closeEmployee) {
+        return [customSchedules[dateString].closeEmployee];
     }
     
     // 計算從每月1號開始到今天的工作日數量
@@ -474,17 +492,36 @@ function renderModalEmployeeList(employees, type, container) {
         return;
     }
     
+    // 添加排序說明
+    const sortInfo = document.createElement('div');
+    sortInfo.className = 'sort-info';
+    sortInfo.innerHTML = '💡 拖拽員工項目來重新排序排班順序';
+    container.appendChild(sortInfo);
+    
+    // 創建可排序的容器
+    const sortableContainer = document.createElement('div');
+    sortableContainer.className = 'sortable-container';
+    sortableContainer.id = `sortable-${type}`;
+    
     employees.forEach((emp, index) => {
         const empItem = document.createElement('div');
-        empItem.className = 'employee-item';
+        empItem.className = 'employee-item sortable-item';
+        empItem.draggable = true;
+        empItem.dataset.empId = emp.id;
         
         empItem.innerHTML = `
-            <span><strong>${index + 1}.</strong> ${emp.name}</span>
+            <span class="drag-handle">⋮⋮</span>
+            <span class="emp-info"><strong>${index + 1}.</strong> ${emp.name}</span>
             <button class="delete-btn" onclick="deleteEmployee('${type}', ${emp.id})">刪除</button>
         `;
         
-        container.appendChild(empItem);
+        sortableContainer.appendChild(empItem);
     });
+    
+    container.appendChild(sortableContainer);
+    
+    // 啟用拖拽排序
+    enableSortable(sortableContainer, type);
 }
 
 // 渲染彈出視窗中的假日列表
@@ -751,4 +788,215 @@ function loadTheme() {
     const savedTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
     updateDarkModeButton(savedTheme);
+}
+
+// 顯示日期編輯彈出視窗
+function showDayEditModal(date) {
+    const modal = document.getElementById('modal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalEmployeeList = document.getElementById('modalEmployeeList');
+    
+    const formattedDate = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+    modalTitle.textContent = `編輯 ${formattedDate} 排班`;
+    
+    // 檢查是否為假日
+    const dateString = formatDate(date);
+    const isNationalHoliday = holidays.includes(dateString);
+    const isCustomHoliday = customHolidays.includes(dateString);
+    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+    const isHoliday = isNationalHoliday || isCustomHoliday || isWeekend;
+    
+    // 獲取當前排班
+    const dayOpenEmployees = isHoliday ? [] : getOpenEmployeesForDate(date);
+    const dayCloseEmployees = isHoliday ? [] : getCloseEmployeesForDate(date);
+    
+    renderDayEditModal(date, dayOpenEmployees, dayCloseEmployees, isHoliday, modalEmployeeList);
+    
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+// 渲染日期編輯彈出視窗
+function renderDayEditModal(date, openEmps, closeEmps, isHoliday, container) {
+    container.innerHTML = '';
+    
+    if (isHoliday) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #dc3545; font-size: 16px;">
+                <strong>🏖️ 此日為假日，不安排排班</strong>
+                <p style="margin-top: 10px; color: #6c757d; font-size: 14px;">假日會自動跳過，使用下一個工作日的排班順序</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // 創建編輯界面
+    const editContainer = document.createElement('div');
+    editContainer.className = 'day-edit-container';
+    
+    editContainer.innerHTML = `
+        <div class="day-edit-section">
+            <h4>🔓 開門人員</h4>
+            <div class="current-assignment">
+                <strong>當前排班：</strong> ${openEmps.length > 0 ? openEmps[0] : '無'}
+            </div>
+            <div class="employee-selector">
+                <label>選擇開門人員：</label>
+                <select id="openEmployeeSelect" class="employee-select">
+                    <option value="">-- 選擇員工 --</option>
+                    ${openEmployees.map(emp => 
+                        `<option value="${emp.name}" ${openEmps.includes(emp.name) ? 'selected' : ''}>${emp.name}</option>`
+                    ).join('')}
+                </select>
+            </div>
+        </div>
+        
+        <div class="day-edit-section">
+            <h4>🔒 關門人員</h4>
+            <div class="current-assignment">
+                <strong>當前排班：</strong> ${closeEmps.length > 0 ? closeEmps[0] : '無'}
+            </div>
+            <div class="employee-selector">
+                <label>選擇關門人員：</label>
+                <select id="closeEmployeeSelect" class="employee-select">
+                    <option value="">-- 選擇員工 --</option>
+                    ${closeEmployees.map(emp => 
+                        `<option value="${emp.name}" ${closeEmps.includes(emp.name) ? 'selected' : ''}>${emp.name}</option>`
+                    ).join('')}
+                </select>
+            </div>
+        </div>
+        
+        <div class="day-edit-actions">
+            <button class="save-btn" onclick="saveDayEdit('${formatDate(date)}')">💾 儲存變更</button>
+            <button class="reset-btn" onclick="resetDayEdit('${formatDate(date)}')">🔄 重置為自動排班</button>
+        </div>
+    `;
+    
+    container.appendChild(editContainer);
+}
+
+// 儲存日期編輯
+function saveDayEdit(dateString) {
+    const openSelect = document.getElementById('openEmployeeSelect');
+    const closeSelect = document.getElementById('closeEmployeeSelect');
+    
+    const customSchedules = JSON.parse(localStorage.getItem('customSchedules') || '{}');
+    
+    customSchedules[dateString] = {
+        openEmployee: openSelect.value,
+        closeEmployee: closeSelect.value
+    };
+    
+    localStorage.setItem('customSchedules', JSON.stringify(customSchedules));
+    
+    closeModal();
+    displayCalendar();
+    
+    // 顯示成功訊息
+    showNotification('排班已更新！', 'success');
+}
+
+// 重置日期編輯
+function resetDayEdit(dateString) {
+    const customSchedules = JSON.parse(localStorage.getItem('customSchedules') || '{}');
+    delete customSchedules[dateString];
+    localStorage.setItem('customSchedules', JSON.stringify(customSchedules));
+    
+    closeModal();
+    displayCalendar();
+    
+    showNotification('已重置為自動排班！', 'info');
+}
+
+// 顯示通知
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 8px;
+        color: white;
+        font-weight: bold;
+        z-index: 10000;
+    `;
+    
+    if (type === 'success') notification.style.background = '#28a745';
+    if (type === 'info') notification.style.background = '#17a2b8';
+    if (type === 'error') notification.style.background = '#dc3545';
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => notification.remove(), 3000);
+}
+
+// 啟用拖拽排序功能
+function enableSortable(container, type) {
+    let draggedElement = null;
+    
+    container.addEventListener('dragstart', function(e) {
+        draggedElement = e.target;
+        e.target.style.opacity = '0.5';
+    });
+    
+    container.addEventListener('dragend', function(e) {
+        e.target.style.opacity = '';
+        draggedElement = null;
+        
+        // 更新排序
+        updateEmployeeOrder(container, type);
+    });
+    
+    container.addEventListener('dragover', function(e) {
+        e.preventDefault();
+    });
+    
+    container.addEventListener('drop', function(e) {
+        e.preventDefault();
+        
+        if (draggedElement !== e.target && e.target.classList.contains('sortable-item')) {
+            const allItems = Array.from(container.querySelectorAll('.sortable-item'));
+            const draggedIndex = allItems.indexOf(draggedElement);
+            const targetIndex = allItems.indexOf(e.target);
+            
+            if (draggedIndex < targetIndex) {
+                e.target.parentNode.insertBefore(draggedElement, e.target.nextSibling);
+            } else {
+                e.target.parentNode.insertBefore(draggedElement, e.target);
+            }
+        }
+    });
+}
+
+// 更新員工順序
+function updateEmployeeOrder(container, type) {
+    const items = container.querySelectorAll('.sortable-item');
+    const newOrder = Array.from(items).map(item => {
+        const empId = parseFloat(item.dataset.empId);
+        const employees = type === 'open' ? openEmployees : closeEmployees;
+        return employees.find(emp => emp.id === empId);
+    });
+    
+    if (type === 'open') {
+        openEmployees = newOrder;
+    } else {
+        closeEmployees = newOrder;
+    }
+    
+    // 更新序號顯示
+    items.forEach((item, index) => {
+        const empInfo = item.querySelector('.emp-info');
+        const empName = empInfo.textContent.split('. ')[1];
+        empInfo.innerHTML = `<strong>${index + 1}.</strong> ${empName}`;
+    });
+    
+    saveEmployees();
+    updateEmployeeList();
+    displayCalendar();
+    
+    showNotification('排序已更新！', 'success');
 }

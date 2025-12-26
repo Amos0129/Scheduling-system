@@ -275,7 +275,6 @@ header h1 {
 .employee-list:hover,
 .close-employee-list:hover,
 .holiday-list:hover {
-    transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(133, 193, 233, 0.2);
     border-color: #5dade2;
 }
@@ -368,7 +367,6 @@ header h1 {
 .modal-list .employee-item:hover,
 .modal-list .holiday-item:hover {
     border-color: #85c1e9;
-    transform: translateX(5px);
 }
 
 /* 彈出視窗滾動條美化 */
@@ -390,6 +388,192 @@ header h1 {
     background: #5dade2;
 }
 
+/* 日期編輯界面樣式 */
+.day-edit-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.day-edit-section {
+    background: #f8fbff;
+    padding: 15px;
+    border-radius: 8px;
+    border: 2px solid #d5e8f3;
+}
+
+.day-edit-section h4 {
+    margin: 0 0 10px 0;
+    color: #5dade2;
+    font-size: 16px;
+}
+
+.current-assignment {
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #e3f2fd;
+    border-radius: 5px;
+    border-left: 4px solid #2196f3;
+}
+
+.employee-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.employee-selector label {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.employee-select {
+    padding: 10px;
+    border: 2px solid #85c1e9;
+    border-radius: 5px;
+    font-size: 14px;
+    background: white;
+    color: #2c3e50;
+}
+
+.employee-select:focus {
+    outline: none;
+    border-color: #5dade2;
+    box-shadow: 0 0 5px rgba(93, 173, 226, 0.3);
+}
+
+.day-edit-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    padding-top: 10px;
+    border-top: 2px solid #d5e8f3;
+}
+
+.save-btn, .reset-btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.save-btn {
+    background: #28a745;
+    color: white;
+}
+
+.save-btn:hover {
+    background: #20c997;
+}
+
+.reset-btn {
+    background: #6c757d;
+    color: white;
+}
+
+.reset-btn:hover {
+    background: #5a6268;
+}
+
+/* 黑暗模式支援 */
+[data-theme="dark"] .day-edit-section {
+    background: #495057;
+    border-color: #6c757d;
+}
+
+[data-theme="dark"] .day-edit-section h4 {
+    color: #74b9ff;
+}
+
+[data-theme="dark"] .current-assignment {
+    background: #343a40;
+    border-left-color: #74b9ff;
+    color: #e9ecef;
+}
+
+[data-theme="dark"] .employee-selector label {
+    color: #e9ecef;
+}
+
+[data-theme="dark"] .employee-select {
+    background: #343a40;
+    border-color: #6c757d;
+    color: #e9ecef;
+}
+
+[data-theme="dark"] .employee-select:focus {
+    border-color: #74b9ff;
+    box-shadow: 0 0 5px rgba(116, 185, 255, 0.3);
+}
+
+[data-theme="dark"] .day-edit-actions {
+    border-top-color: #6c757d;
+}
+
+/* 排序功能樣式 */
+.sort-info {
+    text-align: center;
+    padding: 10px;
+    margin-bottom: 15px;
+    background: #e3f2fd;
+    border-radius: 5px;
+    color: #1976d2;
+    font-size: 14px;
+    border: 1px solid #bbdefb;
+}
+
+.sortable-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sortable-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: move;
+    transition: opacity 0.2s ease;
+}
+
+.sortable-item:hover {
+    background: #f0f8ff;
+}
+
+.drag-handle {
+    color: #6c757d;
+    font-size: 16px;
+    cursor: grab;
+    user-select: none;
+    padding: 5px;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.emp-info {
+    flex: 1;
+}
+
+/* 黑暗模式排序樣式 */
+[data-theme="dark"] .sort-info {
+    background: #343a40;
+    color: #74b9ff;
+    border-color: #495057;
+}
+
+[data-theme="dark"] .sortable-item:hover {
+    background: #495057;
+}
+
+[data-theme="dark"] .drag-handle {
+    color: #adb5bd;
+}
+
 /* 動畫效果 */
 @keyframes fadeIn {
     from { opacity: 0; }
@@ -399,6 +583,16 @@ header h1 {
 @keyframes slideIn {
     from { transform: translateY(-50px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(300px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOutRight {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(300px); opacity: 0; }
 }
 
 .employee-list h3,
@@ -450,7 +644,6 @@ header h1 {
 
 #darkModeToggle:hover {
     background: linear-gradient(135deg, #5a6268, #495057);
-    transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
