@@ -430,12 +430,12 @@ function downloadExcel() {
     // 獲取該月的天數
     const daysInMonth = new Date(year, month, 0).getDate();
     
-    // 建立Excel表格，保持紅色格式
+    // 建立Excel表格，符合您要求的格式
     let xmlContent = `<?xml version="1.0"?>
 <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">
 <Styles>
-<Style ss:ID="Default" ss:Name="Normal">
-<Alignment ss:Horizontal="Center"/>
+<Style ss:ID="Default">
+<Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
 <Font ss:FontName="新細明體" ss:Size="11"/>
 <Borders>
 <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
@@ -444,10 +444,18 @@ function downloadExcel() {
 <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
 </Borders>
 </Style>
-<Style ss:ID="Header">
-<Alignment ss:Horizontal="Center"/>
-<Font ss:FontName="新細明體" ss:Size="11" ss:Bold="1"/>
-<Interior ss:Color="#F0F0F0" ss:Pattern="Solid"/>
+<Style ss:ID="Title">
+<Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+<Font ss:FontName="新細明體" ss:Size="14" ss:Bold="1"/>
+<Borders>
+<Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="2"/>
+<Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="2"/>
+<Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="2"/>
+</Borders>
+</Style>
+<Style ss:ID="TitleBlue">
+<Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+<Font ss:FontName="新細明體" ss:Size="14" ss:Bold="1" ss:Color="#0000FF"/>
 <Borders>
 <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="2"/>
 <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="2"/>
@@ -455,8 +463,28 @@ function downloadExcel() {
 <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="2"/>
 </Borders>
 </Style>
+<Style ss:ID="Header">
+<Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>
+<Font ss:FontName="新細明體" ss:Size="10" ss:Bold="1"/>
+<Borders>
+<Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+<Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+<Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+<Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+</Borders>
+</Style>
+<Style ss:ID="SubHeader">
+<Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+<Font ss:FontName="新細明體" ss:Size="9" ss:Bold="1"/>
+<Borders>
+<Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+<Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+<Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+<Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+</Borders>
+</Style>
 <Style ss:ID="Holiday">
-<Alignment ss:Horizontal="Center"/>
+<Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
 <Font ss:FontName="新細明體" ss:Size="11" ss:Color="#FF0000" ss:Bold="1"/>
 <Borders>
 <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
@@ -468,16 +496,53 @@ function downloadExcel() {
 </Styles>
 <Worksheet ss:Name="${monthName}排班表">
 <Table>
-<Column ss:Width="50"/>
+<Column ss:Width="40"/>
 <Column ss:Width="80"/>
 <Column ss:Width="80"/>
-<Row>
-<Cell ss:StyleID="Header"><Data ss:Type="String">日期</Data></Cell>
-<Cell ss:StyleID="Header"><Data ss:Type="String">開門</Data></Cell>
-<Cell ss:StyleID="Header"><Data ss:Type="String">關門</Data></Cell>
+<Column ss:Width="100"/>
+<Column ss:Width="80"/>
+<Column ss:Width="80"/>
+<Column ss:Width="100"/>
+<Column ss:Width="120"/>
+<Column ss:Width="120"/>
+<Column ss:Width="200"/>
+
+<!-- 標題行 -->
+<Row ss:Height="50">
+<Cell ss:StyleID="Title" ss:MergeAcross="9"><Data ss:Type="String">台北富邦銀行民生分行 ${year - 1911} 年 ${month} 月保全排班/設定/解除登記表</Data></Cell>
+</Row>
+
+<!-- 第二層欄位標題行 -->
+<Row ss:Height="20">
+<Cell ss:StyleID="Header" ss:MergeDown="2"><Data ss:Type="String">日期</Data></Cell>
+<Cell ss:StyleID="Header" ss:MergeAcross="1"><Data ss:Type="String">解除人員</Data></Cell>
+<Cell ss:StyleID="Header"><Data ss:Type="String">解除</Data></Cell>
+<Cell ss:StyleID="Header" ss:MergeAcross="1"><Data ss:Type="String">關門人員</Data></Cell>
+<Cell ss:StyleID="Header"><Data ss:Type="String">設定</Data></Cell>
+<Cell ss:StyleID="Header" ss:MergeDown="2"><Data ss:Type="String">主管蓋章&#10;確認設定/&#10;簽退時間&#10;相符(註1)</Data></Cell>
+<Cell ss:StyleID="Header" ss:MergeDown="2"><Data ss:Type="String">單位主管/&#10;分行個金&#10;主管簽章</Data></Cell>
+<Cell ss:StyleID="Header" ss:MergeDown="2"><Data ss:Type="String">備註 (實際解除或關門人員與原排班&#10;人員不同時，應予註明原&#10;因，並經主管簽核)</Data></Cell>
+</Row>
+
+<!-- 第三層欄位標題行 -->
+<Row ss:Height="55">
+<Cell ss:Index="2" ss:StyleID="SubHeader" ss:MergeAcross="1"><Data ss:Type="String">簽章</Data></Cell>
+<Cell ss:StyleID="SubHeader"><Data ss:Type="String">時間</Data></Cell>
+<Cell ss:StyleID="SubHeader" ss:MergeAcross="1"><Data ss:Type="String">簽章</Data></Cell>
+<Cell ss:StyleID="SubHeader"><Data ss:Type="String">時間</Data></Cell>
+</Row>
+
+<!-- 第四層欄位標題行 -->
+<Row ss:Height="20">
+<Cell ss:Index="2" ss:StyleID="SubHeader"><Data ss:Type="String">排班</Data></Cell>
+<Cell ss:StyleID="SubHeader"><Data ss:Type="String">實際</Data></Cell>
+<Cell ss:StyleID="SubHeader"><Data ss:Type="String">(時/分)</Data></Cell>
+<Cell ss:StyleID="SubHeader"><Data ss:Type="String">排班</Data></Cell>
+<Cell ss:StyleID="SubHeader"><Data ss:Type="String">實際</Data></Cell>
+<Cell ss:StyleID="SubHeader"><Data ss:Type="String">(時/分)</Data></Cell>
 </Row>`;
 
-    // 每一行代表一天
+    // 每一天的資料行
     for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, month - 1, day);
         const dateString = formatDate(date);
@@ -508,11 +573,19 @@ function downloadExcel() {
         }
         
         const styleID = isHoliday ? 'Holiday' : 'Default';
+        
         xmlContent += `
-<Row>
+<!-- 第${day}天 -->
+<Row ss:Height="25">
 <Cell ss:StyleID="Default"><Data ss:Type="Number">${day}</Data></Cell>
 <Cell ss:StyleID="${styleID}"><Data ss:Type="String">${openValue}</Data></Cell>
+<Cell ss:StyleID="Default"><Data ss:Type="String"></Data></Cell>
+<Cell ss:StyleID="Default"><Data ss:Type="String"></Data></Cell>
 <Cell ss:StyleID="${styleID}"><Data ss:Type="String">${closeValue}</Data></Cell>
+<Cell ss:StyleID="Default"><Data ss:Type="String"></Data></Cell>
+<Cell ss:StyleID="Default"><Data ss:Type="String"></Data></Cell>
+<Cell ss:StyleID="Default"><Data ss:Type="String"></Data></Cell>
+<Cell ss:StyleID="Default"><Data ss:Type="String"></Data></Cell>
 </Row>`;
     }
     
@@ -525,6 +598,6 @@ function downloadExcel() {
     const blob = new Blob([xmlContent], { type: 'application/vnd.ms-excel;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `${monthName}排班表.xls`;
+    link.download = `台北富邦銀行民生分行${year - 1911}年${month}月排班表.xls`;
     link.click();
 }
