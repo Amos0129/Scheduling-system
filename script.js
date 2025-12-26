@@ -37,11 +37,13 @@ const holidayDateInput = document.getElementById('holidayDate');
 const addHolidayBtn = document.getElementById('addHoliday');
 const holidayListContainer = document.getElementById('holidayListContainer');
 const downloadExcelBtn = document.getElementById('downloadExcel');
+const darkModeToggleBtn = document.getElementById('darkModeToggle');
 
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
     loadEmployees();
     loadCustomHolidays();
+    loadTheme();
     displayCalendar();
     updateEmployeeList();
     updateHolidayList();
@@ -53,6 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
     addCloseEmployeeBtn.addEventListener('click', addCloseEmployee);
     addHolidayBtn.addEventListener('click', addCustomHoliday);
     downloadExcelBtn.addEventListener('click', downloadExcel);
+    darkModeToggleBtn.addEventListener('click', toggleDarkMode);
 });
 
 // 顯示行事曆
@@ -103,23 +106,26 @@ function displayCalendar() {
             
             cell.appendChild(dateNumber);
             
-            // 顯示該日期的開門員工名單
-            const dayOpenEmployees = getOpenEmployeesForDate(cellDate);
-            dayOpenEmployees.forEach(emp => {
-                const empElement = document.createElement('div');
-                empElement.className = 'employee-name';
-                empElement.textContent = `開:${emp}`;
-                cell.appendChild(empElement);
-            });
-            
-            // 顯示該日期的關門員工名單
-            const dayCloseEmployees = getCloseEmployeesForDate(cellDate);
-            dayCloseEmployees.forEach(emp => {
-                const empElement = document.createElement('div');
-                empElement.className = 'close-employee-name';
-                empElement.textContent = `關:${emp}`;
-                cell.appendChild(empElement);
-            });
+            // 只在當前月份顯示員工排班
+            if (cellDate.getMonth() === month) {
+                // 顯示該日期的開門員工名單
+                const dayOpenEmployees = getOpenEmployeesForDate(cellDate);
+                dayOpenEmployees.forEach(emp => {
+                    const empElement = document.createElement('div');
+                    empElement.className = 'employee-name';
+                    empElement.textContent = `開:${emp}`;
+                    cell.appendChild(empElement);
+                });
+                
+                // 顯示該日期的關門員工名單
+                const dayCloseEmployees = getCloseEmployeesForDate(cellDate);
+                dayCloseEmployees.forEach(emp => {
+                    const empElement = document.createElement('div');
+                    empElement.className = 'close-employee-name';
+                    empElement.textContent = `關:${emp}`;
+                    cell.appendChild(empElement);
+                });
+            }
             
             row.appendChild(cell);
         }
@@ -421,6 +427,123 @@ function loadCustomHolidays() {
     }
 }
 
+// 顯示員工彈出視窗
+function showEmployeeModal(type) {
+    const modal = document.getElementById('modal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalEmployeeList = document.getElementById('modalEmployeeList');
+    
+    if (type === 'open') {
+        modalTitle.textContent = '開門名單管理';
+        renderModalEmployeeList(openEmployees, 'open', modalEmployeeList);
+    } else if (type === 'close') {
+        modalTitle.textContent = '關門名單管理';
+        renderModalEmployeeList(closeEmployees, 'close', modalEmployeeList);
+    }
+    
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden'; // 防止背景滾動
+}
+
+// 顯示假日彈出視窗
+function showHolidayModal() {
+    const modal = document.getElementById('modal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalEmployeeList = document.getElementById('modalEmployeeList');
+    
+    modalTitle.textContent = '自訂假日列表';
+    renderModalHolidayList(modalEmployeeList);
+    
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+// 關閉彈出視窗
+function closeModal() {
+    const modal = document.getElementById('modal');
+    modal.style.display = 'none';
+    document.body.style.overflow = 'auto'; // 恢復背景滾動
+}
+
+// 渲染彈出視窗中的員工列表
+function renderModalEmployeeList(employees, type, container) {
+    container.innerHTML = '';
+    
+    if (employees.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #85c1e9; font-style: italic;">目前沒有員工</p>';
+        return;
+    }
+    
+    employees.forEach((emp, index) => {
+        const empItem = document.createElement('div');
+        empItem.className = 'employee-item';
+        
+        empItem.innerHTML = `
+            <span><strong>${index + 1}.</strong> ${emp.name}</span>
+            <button class="delete-btn" onclick="deleteEmployee('${type}', ${emp.id})">刪除</button>
+        `;
+        
+        container.appendChild(empItem);
+    });
+}
+
+// 渲染彈出視窗中的假日列表
+function renderModalHolidayList(container) {
+    container.innerHTML = '';
+    
+    if (customHolidays.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #85c1e9; font-style: italic;">目前沒有自訂假日</p>';
+        return;
+    }
+    
+    customHolidays.forEach(holidayDate => {
+        const holidayItem = document.createElement('div');
+        holidayItem.className = 'holiday-item';
+        
+        const date = new Date(holidayDate);
+        const formattedDate = `${date.getFullYear()}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
+        
+        holidayItem.innerHTML = `
+            <span><strong>📅</strong> ${formattedDate}</span>
+            <button class="delete-btn" onclick="deleteHolidayFromModal('${holidayDate}')">刪除</button>
+        `;
+        
+        container.appendChild(holidayItem);
+    });
+}
+
+// 從彈出視窗刪除員工
+function deleteEmployee(type, id) {
+    if (type === 'open') {
+        deleteOpenEmployee(id);
+        showEmployeeModal('open'); // 重新渲染彈出視窗
+    } else if (type === 'close') {
+        deleteCloseEmployee(id);
+        showEmployeeModal('close'); // 重新渲染彈出視窗
+    }
+}
+
+// 從彈出視窗刪除假日
+function deleteHolidayFromModal(holidayDate) {
+    deleteCustomHoliday(holidayDate);
+    showHolidayModal(); // 重新渲染彈出視窗
+}
+
+// 點擊彈出視窗背景關閉
+window.onclick = function(event) {
+    const modal = document.getElementById('modal');
+    if (event.target === modal) {
+        closeModal();
+    }
+}
+
+// ESC鍵關閉彈出視窗
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeModal();
+    }
+});
+
 // 下載Excel檔案
 function downloadExcel() {
     const year = currentDate.getFullYear();
@@ -600,4 +723,32 @@ function downloadExcel() {
     link.href = URL.createObjectURL(blob);
     link.download = `台北富邦銀行民生分行${year - 1911}年${month}月排班表.xls`;
     link.click();
+}
+
+// 黑暗模式功能
+function toggleDarkMode() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    document.documentElement.setAttribute('data-theme', newTheme);
+    updateDarkModeButton(newTheme);
+    saveTheme(newTheme);
+}
+
+function updateDarkModeButton(theme) {
+    if (theme === 'dark') {
+        darkModeToggleBtn.innerHTML = '<span class="theme-icon">◐</span> 淺色';
+    } else {
+        darkModeToggleBtn.innerHTML = '<span class="theme-icon">◑</span> 黑暗';
+    }
+}
+
+function saveTheme(theme) {
+    localStorage.setItem('theme', theme);
+}
+
+function loadTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateDarkModeButton(savedTheme);
 }

@@ -16,6 +16,7 @@
             <button id="prevMonth">&lt;</button>
             <h2 id="monthYear"></h2>
             <button id="nextMonth">&gt;</button>
+            <button id="darkModeToggle">🌙 黑暗模式</button>
             <button id="downloadExcel">下載Excel</button>
         </div>
 
@@ -63,25 +64,38 @@
                 </div>
             </div>
 
-            <div class="employee-list">
-                <h3>開門名單管理</h3>
+            <div class="employee-list" onclick="showEmployeeModal('open')">
+                <h3>開門名單管理 <span class="click-hint">(點擊查看)</span></h3>
                 <div id="openEmployeeListContainer">
                     <!-- 開門員工名單將顯示在這裡 -->
                 </div>
             </div>
 
-            <div class="close-employee-list">
-                <h3>關門名單管理</h3>
+            <div class="close-employee-list" onclick="showEmployeeModal('close')">
+                <h3>關門名單管理 <span class="click-hint">(點擊查看)</span></h3>
                 <div id="closeEmployeeListContainer">
                     <!-- 關門員工名單將顯示在這裡 -->
                 </div>
             </div>
 
-            <div class="holiday-list">
-                <h3>自訂假日列表</h3>
+            <div class="holiday-list" onclick="showHolidayModal()">
+                <h3>自訂假日列表 <span class="click-hint">(點擊查看)</span></h3>
                 <div id="holidayListContainer">
                     <!-- 自訂假日將顯示在這裡 -->
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 彈出視窗 -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle"></h2>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="modalEmployeeList" class="modal-list"></div>
             </div>
         </div>
     </div>
